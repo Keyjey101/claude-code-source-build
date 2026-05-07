@@ -8,6 +8,9 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const versionRoot = path.resolve(__dirname, '..');
+const bunExecutable = process.platform === 'win32' ? 'bun.cmd' : 'bun';
+const npmExecutable = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const spawnDefaults = process.platform === 'win32' ? { shell: true } : {};
 
 const sourceRoot = path.join(versionRoot, 'source');
 const installedPackageJson = path.join(sourceRoot, 'package.json');
@@ -197,8 +200,12 @@ function main() {
 
     const changed = reconcileBuildErrors(buildResult.stderr);
     if (!changed) {
-      process.stdout.write(buildResult.stdout);
-      process.stderr.write(buildResult.stderr);
+      if (buildResult.stdout != null) {
+        process.stdout.write(buildResult.stdout);
+      }
+      if (buildResult.stderr != null) {
+        process.stderr.write(buildResult.stderr);
+      }
       process.exit(buildResult.status ?? 1);
     }
   }
@@ -304,7 +311,8 @@ function ensureOverlayDependencies(packageNames) {
     '--legacy-peer-deps',
     ...packageNames,
   ];
-  const install = spawnSync('npm', installArgs, {
+  const install = spawnSync(npmExecutable, installArgs, {
+    ...spawnDefaults,
     cwd: workspaceRoot,
     encoding: 'utf8',
     maxBuffer: 256 * 1024 * 1024,
@@ -629,7 +637,8 @@ function runBunBuild() {
     bunArgs.push('--minify');
   }
 
-  return spawnSync('bun', bunArgs, {
+  return spawnSync(bunExecutable, bunArgs, {
+    ...spawnDefaults,
     cwd: workspaceRoot,
     encoding: 'utf8',
     env: {
@@ -691,6 +700,10 @@ function finalizeBuild() {
 
 function reconcileBuildErrors(stderrText) {
   let changed = false;
+
+  if (stderrText == null) {
+    return changed;
+  }
 
   for (const match of stderrText.matchAll(
     /error: Could not resolve: "([^"]+)"[\s\S]*?\n\s+at ([^\n:]+):\d+:\d+/g,

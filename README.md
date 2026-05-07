@@ -28,9 +28,10 @@ Output: `dist/cli.js` (wrapper) + `dist/cli.bundle/` (bundle).
 First build runs `npm install` for ~80 overlay packages. Subsequent builds skip this.
 
 ## Run
-
+in powershell
 ```bash
-node dist/cli.js
+create .env
+.\run.ps1
 ```
 
 ### Computer Use (macOS)
